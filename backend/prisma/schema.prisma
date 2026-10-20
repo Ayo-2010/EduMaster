@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  PARENT
+  SCHOOL_ADMIN
+  SUPER_ADMIN
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  role          Role     @default(STUDENT)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  profile       Profile?
+  schoolId      String?
+  school        School?  @relation(fields: [schoolId], references: [id])
+  questions     Question[]
+  sessions      Session[]
+}
+
+model Profile {
+  id          String  @id @default(uuid())
+  userId      String  @unique
+  firstName   String?
+  lastName    String?
+  phone       String?
+  avatar      String?
+  user        User    @relation(fields: [userId], references: [id])
+}
+
+model School {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  address   String?
+  phone     String?
+  email     String?
+  createdAt DateTime @default(now())
+  users     User[]
+  courses   Course[]
+  questions Question[]
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  subject     String
+  slug        String   @unique
+  schoolId    String?
+  school      School?  @relation(fields: [schoolId], references: [id])
+  lessons     Lesson[]
+  createdAt   DateTime @default(now())
+}
+
+model Lesson {
+  id          String    @id @default(uuid())
+  title       String
+  content     String?
+  videoUrl    String?
+  courseId    String
+  course      Course    @relation(fields: [courseId], references: [id])
+  quizzes     Quiz[]
+  assignments Assignment[]
+  createdAt   DateTime  @default(now())
+}
+
+model Question {
+  id            String   @id @default(uuid())
+  subject       String
+  topic         String
+  text          String
+  options       Json
+  correctAnswer String
+  explanation   String?
+  difficulty    String   @default("MEDIUM")
+  examType      String?
+  schoolId      String?
+  school        School?  @relation(fields: [schoolId], references: [id])
+  createdById   String?
+  createdBy     User?    @relation(fields: [createdById], references: [id])
+  createdAt     DateTime @default(now())
+}
+
+model Quiz {
+  id        String    @id @default(uuid())
+  title     String
+  questions String[]
+  lessonId  String?
+  lesson    Lesson?   @relation(fields: [lessonId], references: [id])
+  attempts  Attempt[]
+}
+
+model Attempt {
+  id          String   @id @default(uuid())
+  quizId      String
+  quiz        Quiz     @relation(fields: [quizId], references: [id])
+  score       Int?
+  answers     Json?
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+}
+
+model Assignment {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  deadline    DateTime?
+  lessonId    String?
+  lesson      Lesson?  @relation(fields: [lessonId], references: [id])
+  submissions Submission[]
+}
+
+model Submission {
+  id          String   @id @default(uuid())
+  assignmentId String
+  assignment  Assignment @relation(fields: [assignmentId], references: [id])
+  content     String?
+  grade       Int?
+  feedback    String?
+  submittedAt DateTime @default(now())
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
